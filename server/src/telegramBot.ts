@@ -1,4 +1,4 @@
-import { linkPhoneToChat } from './telegramPhoneMap';
+import { formatPhoneKey, linkPhoneToChat } from './telegramPhoneMap';
 
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 
@@ -95,10 +95,15 @@ export async function handleTelegramUpdate(update: Record<string, unknown>) {
   const chatId = String(message.chat.id);
 
   if (message.contact?.phone_number) {
-    await linkPhoneToChat(message.contact.phone_number, chatId);
+    const linkedKey = await linkPhoneToChat(message.contact.phone_number, chatId);
+    if (!linkedKey) {
+      await sendTelegramMessage(chatId, '❌ Telefon raqam noto\'g\'ri. Qayta urinib ko\'ring.');
+      return;
+    }
+
     await sendTelegramMessage(
       chatId,
-      '✅ Rahmat! Telefon raqamingiz bog\'landi.\n\nEndi CRM dagi shu raqam bo\'yicha davomat xabarlari avtomatik keladi.\n\n🟢 Keldi · 🔴 Kelmadi · 🔵 Sababli · 🟡 Kechikdi'
+      `✅ Rahmat! Telefon raqamingiz bog'landi:\n${formatPhoneKey(linkedKey)}\n\nEndi CRM dagi shu raqam bo'yicha davomat xabarlari avtomatik keladi.\n\n🟢 Keldi · 🔴 Kelmadi · 🔵 Sababli · 🟡 Kechikdi`
     );
     return;
   }

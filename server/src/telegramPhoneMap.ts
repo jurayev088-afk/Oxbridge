@@ -5,11 +5,32 @@ import pool from './db';
 const phoneToChatId = new Map<string, string>();
 const mapFile = path.join(__dirname, '..', 'data', 'telegram-phones.json');
 
+/** 9 xonali raqam (998 siz) — CRM va Telegram uchun umumiy format */
 export function normalizePhoneKey(phone: string) {
   let digits = phone.replace(/\D/g, '');
-  if (digits.startsWith('998')) return digits;
-  if (digits.length === 9) return `998${digits}`;
-  return digits;
+  if (digits.startsWith('998')) digits = digits.slice(3);
+  if (digits.startsWith('8') && digits.length >= 10) digits = digits.slice(1);
+  return digits.slice(-9);
+}
+
+async function syncChatIdToUsers(normalizedPhone: string, chatId: string) {
+  if (normalizedPhone.length !== 9) return;
+
+  await pool.query(
+    `UPDATE users SET telegram_chat_id = $2
+     WHERE RIGHT(regexp_replace(COALESCE(phone, ''), '\\D', '', 'g'), 9) = $1`,
+    [normalizedPhone, chatId]
+  );
+  await pool.query(
+    `UPDATE users SET father_telegram_chat_id = $2
+     WHERE RIGHT(regexp_replace(COALESCE(father_phone, ''), '\\D', '', 'g'), 9) = $1`,
+    [normalizedPhone, chatId]
+  );
+  await pool.query(
+    `UPDATE users SET mother_telegram_chat_id = $2
+     WHERE RIGHT(regexp_replace(COALESCE(mother_phone, ''), '\\D', '', 'g'), 9) = $1`,
+    [normalizedPhone, chatId]
+  );
 }
 
 async function migrateFileToDb() {
@@ -21,7 +42,7 @@ async function migrateFileToDb() {
 
     for (const [phone, chatId] of Object.entries(raw)) {
       const key = normalizePhoneKey(phone);
-      if (key.length < 9 || !chatId) continue;
+      if (key.length !== 9 || !chatId) continue;
 
       await pool.query(
         `INSERT INTO telegram_phone_links (phone, chat_id)
@@ -31,6 +52,7 @@ async function migrateFileToDb() {
                linked_at = NOW()`,
         [key, chatId]
       );
+      await syncChatIdToUsers(key, chatId);
       migrated += 1;
     }
 
@@ -54,7 +76,17 @@ async function loadPhoneMapFromDb() {
   );
 
   for (const row of result.rows) {
-    phoneToChatId.set(row.phone, row.chat_id);
+    const key = normalizePhoneKey(row.phone);
+    phoneToChatId.set(key, row.chat_id);
+
+    if (key !== row.phone) {
+      await pool.query(
+        `INSERT INTO telegram_phone_links (phone, chat_id)
+         VALUES ($1, $2)
+         ON CONFLICT (phone) DO UPDATE SET chat_id = EXCLUDED.chat_id`,
+        [key, row.chat_id]
+      );
+    }
   }
 
   console.log(`[Telegram] ${phoneToChatId.size} ta telefon bazadan yuklandi`);
@@ -75,7 +107,10 @@ export async function initTelegramPhoneMap() {
 
 export async function linkPhoneToChat(phone: string, chatId: string) {
   const key = normalizePhoneKey(phone);
-  if (key.length < 9) return;
+  if (key.length !== 9) {
+    console.warn('[Telegram] noto\'g\'ri telefon:', phone);
+    return null;
+  }
 
   await pool.query(
     `INSERT INTO telegram_phone_links (phone, chat_id)
@@ -86,8 +121,10 @@ export async function linkPhoneToChat(phone: string, chatId: string) {
     [key, chatId]
   );
 
+  await syncChatIdToUsers(key, chatId);
   phoneToChatId.set(key, chatId);
   console.log(`[Telegram] telefon bog'landi: ${key} -> ${chatId}`);
+  return key;
 }
 
 export function getChatIdByPhone(phone?: string): string | undefined {
@@ -97,4 +134,9 @@ export function getChatIdByPhone(phone?: string): string | undefined {
 
 export function getLinkedPhonesCount() {
   return phoneToChatId.size;
+}
+
+export function formatPhoneKey(key: string) {
+  if (key.length !== 9) return key;
+  return `+998 ${key.slice(0, 2)} ${key.slice(2, 5)} ${key.slice(5, 7)} ${key.slice(7, 9)}`;
 }
