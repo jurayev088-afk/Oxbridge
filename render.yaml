@@ -1,0 +1,26 @@
+databases:
+  - name: oxbridge-db
+    plan: free
+    databaseName: crm_demo
+    user: oxbridge
+
+services:
+  - type: web
+    name: oxbridge
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm install --prefix client && npm install --prefix server && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: oxbridge-db
+          property: connectionString
+      - key: TELEGRAM_POLLING
+        value: "true"
+      - key: TELEGRAM_BOT_USERNAME
+        value: oxbridgeacademy_bot
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false

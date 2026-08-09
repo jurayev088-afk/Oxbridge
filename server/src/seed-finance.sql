@@ -1,0 +1,1 @@
+-- Demo moliya ma'lumotlari olib tashlangan — faqat foydalanuvchi kiritgan ma'lumotlar saqlanadi.

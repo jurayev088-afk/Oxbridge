@@ -1,0 +1,1 @@
+-- Demo to'lov va xarajat ma'lumotlari olib tashlangan.
