@@ -22,7 +22,7 @@ import { getAttendanceBlockedMessage, getClassTimeBlockedMessage, isTodayDate, i
 import type { GroupDayType } from './groupDayTypes';
 import { getSmsMode } from './smsService';
 import { getTelegramBotUsername, handleTelegramUpdate, isTelegramConfigured } from './telegramBot';
-import { getLinkedPhonesCount } from './telegramPhoneMap';
+import { getLinkedPhonesCount, initTelegramPhoneMap } from './telegramPhoneMap';
 import { startTelegramPolling } from './telegramPolling';
 import { pickGroupColorFromDb } from './groupColors';
 import { nextGroupCode, normalizeGroupCode } from './nextGroupCode';
@@ -55,6 +55,7 @@ async function start() {
 
   if (dbConnected) {
     console.log('PostgreSQL ulandi — barcha ma\'lumotlar bazada saqlanadi');
+    await initTelegramPhoneMap();
   } else {
     console.error(
       'PostgreSQL ulanmadi — ma\'lumotlar saqlanmaydi. PostgreSQL ishlayotganini va server/.env ni tekshiring.'

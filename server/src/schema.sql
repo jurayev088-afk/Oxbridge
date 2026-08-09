@@ -136,3 +136,9 @@ CREATE INDEX IF NOT EXISTS idx_leads_created ON leads (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users (role);
 CREATE INDEX IF NOT EXISTS idx_users_group_id ON users (group_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_group_date ON attendance (group_id, date);
+
+CREATE TABLE IF NOT EXISTS telegram_phone_links (
+  phone VARCHAR(20) PRIMARY KEY,
+  chat_id VARCHAR(32) NOT NULL,
+  linked_at TIMESTAMP DEFAULT NOW()
+);

@@ -95,7 +95,7 @@ export async function handleTelegramUpdate(update: Record<string, unknown>) {
   const chatId = String(message.chat.id);
 
   if (message.contact?.phone_number) {
-    linkPhoneToChat(message.contact.phone_number, chatId);
+    await linkPhoneToChat(message.contact.phone_number, chatId);
     await sendTelegramMessage(
       chatId,
       '✅ Rahmat! Telefon raqamingiz bog\'landi.\n\nEndi CRM dagi shu raqam bo\'yicha davomat xabarlari avtomatik keladi.\n\n🟢 Keldi · 🔴 Kelmadi · 🔵 Sababli · 🟡 Kechikdi'
