@@ -9,6 +9,10 @@ const { Pool } = pg;
 const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5433/crm_demo',
+  ssl:
+    process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost')
+      ? { rejectUnauthorized: false }
+      : undefined,
 });
 
 export async function initDb(): Promise<boolean> {

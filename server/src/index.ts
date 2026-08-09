@@ -1550,23 +1550,35 @@ app.get('/api/branches', async (_req, res) => {
 function setupClientApp() {
   const clientDist = path.resolve(__dirname, '..', '..', 'client', 'dist');
   const indexHtml = path.join(clientDist, 'index.html');
-  if (!fs.existsSync(indexHtml)) return;
+  if (!fs.existsSync(indexHtml)) {
+    console.warn('Client build topilmadi:', clientDist);
+    return;
+  }
 
   app.use(express.static(clientDist));
-  app.get(/^(?!\/api).*/, (_req, res) => {
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' || req.path.startsWith('/api')) {
+      next();
+      return;
+    }
     res.sendFile(indexHtml);
   });
 }
 
 setupClientApp();
 
-start().then(() => {
-  app.listen(Number(PORT), '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
-    if (isTelegramConfigured()) {
-      const username = getTelegramBotUsername();
-      console.log(`Telegram bot: @${username || 'ulangan'}`);
-      startTelegramPolling();
-    }
+start()
+  .then(() => {
+    app.listen(Number(PORT), '0.0.0.0', () => {
+      console.log(`Server running on port ${PORT}`);
+      if (isTelegramConfigured()) {
+        const username = getTelegramBotUsername();
+        console.log(`Telegram bot: @${username || 'ulangan'}`);
+        startTelegramPolling();
+      }
+    });
+  })
+  .catch((err) => {
+    console.error('Server ishga tushirishda xatolik:', err);
+    process.exit(1);
   });
-});
