@@ -1,3 +1,5 @@
+import { getAppWeekday } from './timezone';
+
 export type GroupDayType = 'even' | 'odd' | 'weekdays' | 'daily';
 
 export const GROUP_DAY_TYPE_OPTIONS: { value: GroupDayType; label: string }[] = [
@@ -25,7 +27,7 @@ const EVEN_WEEKDAYS = new Set([1, 3, 5]);
 const ODD_WEEKDAYS = new Set([2, 4, 6]);
 
 export function isGroupClassDay(groupDayType: GroupDayType, now = new Date()) {
-  const weekday = now.getDay();
+  const weekday = getAppWeekday(now);
 
   if (groupDayType === 'daily') return true;
   if (groupDayType === 'weekdays') return weekday !== 0;
@@ -37,7 +39,7 @@ export function isGroupClassDay(groupDayType: GroupDayType, now = new Date()) {
 export function getAttendanceBlockedMessage(groupDayType: GroupDayType, now = new Date()) {
   if (isGroupClassDay(groupDayType, now)) return '';
 
-  if (now.getDay() === 0 && groupDayType !== 'daily') {
+  if (getAppWeekday(now) === 0 && groupDayType !== 'daily') {
     return 'Bugun yakshanba — dars yo\'q, davomat qo\'yib bo\'lmaydi';
   }
 

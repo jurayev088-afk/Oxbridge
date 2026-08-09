@@ -1,20 +1,19 @@
 import { MONTH_LABELS_FULL } from './monthLabels';
 import type { GroupDayType } from './groupDayTypes';
 import { getAttendanceBlockedMessage as getGroupAttendanceBlockedMessage, isGroupClassDay as isGroupClassDayForType } from './groupDayTypes';
+import { getAppMinutes, getAppWeekday, todayISO as todayISOInAppTimezone } from './timezone';
 
 export type { GroupDayType } from './groupDayTypes';
 export { GROUP_DAY_TYPE_OPTIONS, GROUP_DAY_TYPE_LABELS, GROUP_DAY_TYPE_SHORT } from './groupDayTypes';
 
-/** YYYY-MM-DD — mahalliy vaqt bo'yicha bugun */
+/** YYYY-MM-DD — Toshkent vaqti bo'yicha bugun */
 export function todayISO(now = new Date()) {
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${now.getFullYear()}-${month}-${day}`;
+  return todayISOInAppTimezone(now);
 }
 
 /** Dushanba=1 ... Yakshanba=0 */
 export function getWeekday(now = new Date()) {
-  return now.getDay();
+  return getAppWeekday(now);
 }
 
 export function isSchoolDay(now = new Date()) {
@@ -43,7 +42,7 @@ export function formatClassTimeRange(startTime: string, endTime: string) {
 }
 
 export function isWithinClassTime(startTime: string, endTime: string, now = new Date()) {
-  const current = now.getHours() * 60 + now.getMinutes();
+  const current = getAppMinutes(now);
   const start = parseTimeToMinutes(startTime);
   const end = parseTimeToMinutes(endTime);
   return current >= start && current <= end;
@@ -52,7 +51,7 @@ export function isWithinClassTime(startTime: string, endTime: string, now = new 
 export function getClassTimeBlockedMessage(startTime: string, endTime: string, now = new Date()) {
   if (isWithinClassTime(startTime, endTime, now)) return '';
   const range = formatClassTimeRange(startTime, endTime);
-  const current = now.getHours() * 60 + now.getMinutes();
+  const current = getAppMinutes(now);
   const start = parseTimeToMinutes(startTime);
   if (current < start) {
     return `Davomat hali ochilmagan — dars ${range} da boshlanadi`;
