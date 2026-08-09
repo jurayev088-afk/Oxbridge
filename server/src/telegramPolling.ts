@@ -20,6 +20,15 @@ async function ensurePollingMode(token: string) {
 export async function startTelegramPolling() {
   if (!isTelegramConfigured() || process.env.TELEGRAM_POLLING === 'false') return;
   if (polling) return;
+
+  const onRender = process.env.RENDER === 'true';
+  if (!onRender && process.env.FORCE_TELEGRAM_POLLING !== 'true') {
+    console.log(
+      '[Telegram polling] Local rejimda o\'chiq — Render bilan conflict bo\'lmasin. Test uchun FORCE_TELEGRAM_POLLING=true qo\'ying.'
+    );
+    return;
+  }
+
   polling = true;
 
   const token = process.env.TELEGRAM_BOT_TOKEN!;
