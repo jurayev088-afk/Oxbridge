@@ -10,8 +10,8 @@ export const GROUP_DAY_TYPE_OPTIONS: { value: GroupDayType; label: string }[] = 
 ];
 
 export const GROUP_DAY_TYPE_LABELS: Record<GroupDayType, string> = {
-  even: 'Juft kunlar (Dushanba, Chorshanba, Juma)',
-  odd: 'Toq kunlar (Seshanba, Payshanba, Shanba)',
+  even: 'Juft kunlar (Seshanba, Payshanba, Shanba)',
+  odd: 'Toq kunlar (Dushanba, Chorshanba, Juma)',
   weekdays: 'Dushanbadan shanbagacha',
   daily: 'Har kuni',
 };
@@ -23,8 +23,8 @@ export const GROUP_DAY_TYPE_SHORT: Record<GroupDayType, string> = {
   daily: 'Har kuni',
 };
 
-const EVEN_WEEKDAYS = new Set([1, 3, 5]);
-const ODD_WEEKDAYS = new Set([2, 4, 6]);
+const EVEN_WEEKDAYS = new Set([2, 4, 6]);
+const ODD_WEEKDAYS = new Set([1, 3, 5]);
 
 export function isGroupClassDay(groupDayType: GroupDayType, now = new Date()) {
   const weekday = getAppWeekday(now);
@@ -45,9 +45,9 @@ export function getAttendanceBlockedMessage(groupDayType: GroupDayType, now = ne
 
   switch (groupDayType) {
     case 'even':
-      return 'Bugun juft kun emas — bu guruh faqat dushanba, chorshanba va juma kunlari dars oladi';
+      return 'Bugun juft kun emas — bu guruh faqat seshanba, payshanba va shanba kunlari dars oladi';
     case 'odd':
-      return 'Bugun toq kun emas — bu guruh faqat seshanba, payshanba va shanba kunlari dars oladi';
+      return 'Bugun toq kun emas — bu guruh faqat dushanba, chorshanba va juma kunlari dars oladi';
     case 'weekdays':
       return 'Bugun dars kuni emas — bu guruh dushanbadan shanbagacha dars oladi';
     default:
