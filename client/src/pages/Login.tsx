@@ -57,9 +57,9 @@ export function Login() {
       <div className="login-card">
         <div className="login-brand">
           <div className="login-logo-wrap">
-            <img src={logo} alt="Oxbridge" className="login-logo" />
+            <img src={logo} alt="Oxbridge Academy" className="login-logo" />
           </div>
-          <h1>Oxbridge academy</h1>
+          <h1>Oxbridge Academy</h1>
           <p>CRM tizimiga kirish</p>
         </div>
 

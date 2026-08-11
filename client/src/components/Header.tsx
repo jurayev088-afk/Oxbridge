@@ -42,10 +42,10 @@ export function Header() {
         <div className="header-left">
           <Link to={homePath} className="header-brand">
             <div className="header-logo-wrap">
-              <img src={logo} alt="Oxbridge" className="header-logo" />
+              <img src={logo} alt="Oxbridge Academy" className="header-logo" />
             </div>
             <div className="header-brand-text">
-              <span className="header-brand-title">Oxbridge academy</span>
+              <span className="header-brand-title">Oxbridge Academy</span>
               <span className="header-brand-tag">CRM tizimi</span>
             </div>
           </Link>
