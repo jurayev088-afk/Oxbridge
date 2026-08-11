@@ -3,6 +3,7 @@ import {
   isTelegramConfigured,
   sendTelegramMessage,
   type AttendanceStatus,
+  type LessonGrade,
 } from './telegramBot';
 import { getChatIdByPhone } from './telegramPhoneMap';
 
@@ -60,7 +61,7 @@ function collectChatIdsByPhone(student: StudentTelegramContact, target: NotifyTa
 export async function sendAttendanceTelegramNotifications(
   groupName: string,
   date: string,
-  records: { studentId: string; status: AttendanceStatus }[],
+  records: { studentId: string; status: AttendanceStatus; grade?: LessonGrade | null }[],
   students: StudentTelegramContact[],
   target: NotifyTarget,
   enabled: boolean
@@ -102,7 +103,13 @@ export async function sendAttendanceTelegramNotifications(
     if (!student) continue;
 
     const chatIds = collectChatIdsByPhone(student, target);
-    const text = buildTelegramAttendanceMessage(student.name, groupName, date, record.status);
+    const text = buildTelegramAttendanceMessage(
+      student.name,
+      groupName,
+      date,
+      record.status,
+      record.grade
+    );
 
     if (chatIds.length === 0) {
       messages.push({

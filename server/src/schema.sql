@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS attendance (
   student_id VARCHAR(10) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   date DATE NOT NULL,
   status VARCHAR(10) NOT NULL CHECK (status IN ('present', 'absent', 'late', 'excused')),
+  grade VARCHAR(20) CHECK (grade IN ('excellent', 'good', 'no_homework')),
   PRIMARY KEY (group_id, student_id, date)
 );
 

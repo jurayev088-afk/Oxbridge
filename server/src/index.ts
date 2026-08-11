@@ -657,12 +657,15 @@ app.get('/api/groups/:id/attendance', async (req, res) => {
     );
 
     const attendanceResult = await pool.query(
-      `SELECT student_id, status FROM attendance WHERE group_id = $1 AND date = $2`,
+      `SELECT student_id, status, grade FROM attendance WHERE group_id = $1 AND date = $2`,
       [groupId, date]
     );
 
     const savedMap = Object.fromEntries(
       attendanceResult.rows.map((row) => [row.student_id, row.status])
+    );
+    const gradeMap = Object.fromEntries(
+      attendanceResult.rows.map((row) => [row.student_id, row.grade])
     );
 
     res.json({
@@ -675,6 +678,7 @@ app.get('/api/groups/:id/attendance', async (req, res) => {
         name: row.name,
         photoUrl: row.photo_url ?? '',
         status: savedMap[row.id] ?? 'present',
+        grade: gradeMap[row.id] ?? null,
       })),
     });
   } catch (err) {
@@ -693,7 +697,7 @@ app.put('/api/groups/:id/attendance', async (req, res) => {
     smsTarget = 'parents',
   } = req.body as {
     date: string;
-    records: { studentId: string; status: 'present' | 'absent' | 'late' | 'excused' }[];
+    records: { studentId: string; status: 'present' | 'absent' | 'late' | 'excused'; grade?: 'excellent' | 'good' | 'no_homework' | null }[];
     sendTelegram?: boolean;
     telegramTarget?: NotifyTarget;
     sendSms?: boolean;
@@ -751,10 +755,14 @@ app.put('/api/groups/:id/attendance', async (req, res) => {
     }
 
     for (const record of records) {
+      if ((record.status === 'present' || record.status === 'late') && !record.grade) {
+        return res.status(400).json({ error: 'Kelgan va kechikkan o\'quvchilar uchun baho tanlang' });
+      }
+
       await pool.query(
-        `INSERT INTO attendance (group_id, student_id, date, status)
-         VALUES ($1, $2, $3, $4)`,
-        [groupRow.id, record.studentId, attendanceDate, record.status]
+        `INSERT INTO attendance (group_id, student_id, date, status, grade)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [groupRow.id, record.studentId, attendanceDate, record.status, record.grade ?? null]
       );
     }
 
@@ -767,12 +775,15 @@ app.put('/api/groups/:id/attendance', async (req, res) => {
     );
 
     const attendanceResult = await pool.query(
-      `SELECT student_id, status FROM attendance WHERE group_id = $1 AND date = $2`,
+      `SELECT student_id, status, grade FROM attendance WHERE group_id = $1 AND date = $2`,
       [groupRow.id, attendanceDate]
     );
 
     const savedMap = Object.fromEntries(
       attendanceResult.rows.map((row) => [row.student_id, row.status])
+    );
+    const gradeMap = Object.fromEntries(
+      attendanceResult.rows.map((row) => [row.student_id, row.grade])
     );
 
     const contacts = studentsResult.rows.map((row) => ({
@@ -814,6 +825,7 @@ app.put('/api/groups/:id/attendance', async (req, res) => {
         name: row.name,
         photoUrl: row.photo_url ?? '',
         status: savedMap[row.id] ?? 'present',
+        grade: gradeMap[row.id] ?? null,
       })),
       telegram,
       sms,

@@ -12,7 +12,14 @@ import {
   todayISO,
 } from '../lib/dates';
 import { notificationMessages } from '../lib/notificationMessages';
-import type { AttendanceStatus, GroupDayType, GroupStudent, NotifyTarget, TelegramStatus } from '../types';
+import type {
+  AttendanceStatus,
+  GroupDayType,
+  GroupStudent,
+  LessonGrade,
+  NotifyTarget,
+  TelegramStatus,
+} from '../types';
 import { UserAvatar } from './UserAvatar';
 
 const statusLabels: Record<AttendanceStatus, string> = {
@@ -22,7 +29,18 @@ const statusLabels: Record<AttendanceStatus, string> = {
   late: 'Kechikdi',
 };
 
+const gradeLabels: Record<LessonGrade, string> = {
+  excellent: 'Alo',
+  good: 'Yaxshi',
+  no_homework: 'Uyga vazifa qilinmagan',
+};
+
 const statusOptions: AttendanceStatus[] = ['present', 'absent', 'excused', 'late'];
+const gradeOptions: LessonGrade[] = ['excellent', 'good', 'no_homework'];
+
+function needsGrade(status: AttendanceStatus) {
+  return status === 'present' || status === 'late';
+}
 
 interface GroupAttendanceSectionProps {
   groupId: string;
@@ -47,6 +65,7 @@ export function GroupAttendanceSection({
   const classTimeMessage = getClassTimeBlockedMessage(classStartTime, classEndTime);
   const attendanceDayAllowed = canMarkAttendanceToday(groupDayType);
   const [statuses, setStatuses] = useState<Record<string, AttendanceStatus>>({});
+  const [grades, setGrades] = useState<Record<string, LessonGrade | null>>({});
   const [saved, setSaved] = useState(false);
   const [locked, setLocked] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -70,6 +89,7 @@ export function GroupAttendanceSection({
   useEffect(() => {
     if (students.length === 0) {
       setStatuses({});
+      setGrades({});
       setSaved(false);
       setLocked(false);
       setLoading(false);
@@ -85,11 +105,14 @@ export function GroupAttendanceSection({
           setError('Davomat yuklanmadi');
           return;
         }
-        const map: Record<string, AttendanceStatus> = {};
+        const statusMap: Record<string, AttendanceStatus> = {};
+        const gradeMap: Record<string, LessonGrade | null> = {};
         data.students.forEach((s) => {
-          map[s.id] = s.status;
+          statusMap[s.id] = s.status;
+          gradeMap[s.id] = s.grade ?? null;
         });
-        setStatuses(map);
+        setStatuses(statusMap);
+        setGrades(gradeMap);
         setSaved(data.saved);
         setLocked(Boolean(data.locked ?? data.saved));
         setDirty(false);
@@ -110,6 +133,16 @@ export function GroupAttendanceSection({
   function setStatus(studentId: string, status: AttendanceStatus) {
     if (!canEdit) return;
     setStatuses((prev) => ({ ...prev, [studentId]: status }));
+    if (!needsGrade(status)) {
+      setGrades((prev) => ({ ...prev, [studentId]: null }));
+    }
+    setDirty(true);
+  }
+
+  function setGrade(studentId: string, grade: LessonGrade) {
+    if (!canEdit) return;
+    if (!needsGrade(statuses[studentId] ?? 'present')) return;
+    setGrades((prev) => ({ ...prev, [studentId]: grade }));
     setDirty(true);
   }
 
@@ -125,13 +158,26 @@ export function GroupAttendanceSection({
       return;
     }
 
+    const missingGrade = students.some((s) => {
+      const status = statuses[s.id] ?? 'present';
+      return needsGrade(status) && !grades[s.id];
+    });
+    if (missingGrade) {
+      setError('Kelgan va kechikkan o\'quvchilar uchun baho tanlang');
+      return;
+    }
+
     setSaving(true);
     setError('');
     setNotifyNotice('');
-    const records = students.map((s) => ({
-      studentId: s.id,
-      status: statuses[s.id] ?? 'present',
-    }));
+    const records = students.map((s) => {
+      const status = statuses[s.id] ?? 'present';
+      return {
+        studentId: s.id,
+        status,
+        grade: needsGrade(status) ? grades[s.id] ?? null : null,
+      };
+    });
     const result = await saveGroupAttendance(groupId, date, records, {
       sendTelegram,
       telegramTarget,
@@ -295,7 +341,7 @@ export function GroupAttendanceSection({
               )}
 
               <p className="attendance-telegram-hint">
-                Ota-ona bir marta botda <strong>/start</strong> bosib telefon raqamini ulashadi — keyin CRM dagi telefon orqali xabar keladi. Chat ID kerak emas.
+                Ota-ona bir marta botda <strong>/start</strong> bosib telefon raqamini ulashadi — keyin CRM dagi telefon orqali davomat va baho xabari keladi.
               </p>
             </div>
           )}
@@ -303,25 +349,59 @@ export function GroupAttendanceSection({
           <div className={`attendance-list ${!canEdit ? 'attendance-list-readonly' : ''}`}>
             {students.map((student) => {
               const status = statuses[student.id] ?? 'present';
+              const grade = grades[student.id] ?? null;
+              const showGrades = needsGrade(status);
+
               return (
                 <div key={student.id} className="attendance-row">
-                  <div className="attendance-student">
-                    <UserAvatar name={student.name} photoUrl={student.photoUrl} />
-                    <span>{student.name}</span>
+                  <div className="attendance-row-main">
+                    <div className="attendance-student">
+                      <UserAvatar name={student.name} photoUrl={student.photoUrl} />
+                      <span>{student.name}</span>
+                    </div>
+                    <div className="attendance-actions">
+                      {statusOptions.map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          className={`attendance-btn attendance-btn-${value} ${status === value ? 'active' : ''}`}
+                          onClick={() => setStatus(student.id, value)}
+                          disabled={!canEdit}
+                        >
+                          {statusLabels[value]}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="attendance-actions">
-                    {statusOptions.map((value) => (
-                      <button
-                        key={value}
-                        type="button"
-                        className={`attendance-btn attendance-btn-${value} ${status === value ? 'active' : ''}`}
-                        onClick={() => setStatus(student.id, value)}
-                        disabled={!canEdit}
-                      >
-                        {statusLabels[value]}
-                      </button>
-                    ))}
-                  </div>
+
+                  {showGrades && canEdit && (
+                    <div className="attendance-grade-row">
+                      <span className="attendance-grade-label">Baho:</span>
+                      <div className="attendance-grade-actions">
+                        {gradeOptions.map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            className={`grade-btn grade-btn-${value} ${grade === value ? 'active' : ''}`}
+                            onClick={() => setGrade(student.id, value)}
+                          >
+                            {gradeLabels[value]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {showGrades && isLocked && (
+                    <div className="attendance-grade-row attendance-grade-row-readonly">
+                      <span className="attendance-grade-label">Baho:</span>
+                      {grade ? (
+                        <span className={`grade-badge grade-badge-${grade}`}>{gradeLabels[grade]}</span>
+                      ) : (
+                        <span className="table-muted">—</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}

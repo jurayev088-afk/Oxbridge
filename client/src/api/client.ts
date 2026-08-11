@@ -15,6 +15,7 @@ import type {
   AdminListItem,
   GroupAttendance,
   AttendanceStatus,
+  LessonGrade,
   SmsTarget,
   NotifyTarget,
   SmsStatus,
@@ -289,7 +290,7 @@ export async function fetchGroupAttendance(groupId: string, date: string): Promi
 export async function saveGroupAttendance(
   groupId: string,
   date: string,
-  records: { studentId: string; status: AttendanceStatus }[],
+  records: { studentId: string; status: AttendanceStatus; grade?: LessonGrade | null }[],
   options?: {
     sendTelegram?: boolean;
     telegramTarget?: NotifyTarget;

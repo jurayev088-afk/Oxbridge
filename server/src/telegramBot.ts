@@ -2,6 +2,14 @@ import { formatPhoneKey, linkPhoneToChat } from './telegramPhoneMap';
 
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 
+export type LessonGrade = 'excellent' | 'good' | 'no_homework';
+
+const gradeLabels: Record<LessonGrade, string> = {
+  excellent: '🟢 Alo',
+  good: '🟡 Yaxshi',
+  no_homework: '🔴 Uyga vazifa qilinmagan',
+};
+
 export function isTelegramConfigured() {
   return Boolean(process.env.TELEGRAM_BOT_TOKEN);
 }
@@ -19,7 +27,8 @@ export function buildTelegramAttendanceMessage(
   studentName: string,
   groupName: string,
   date: string,
-  status: AttendanceStatus
+  status: AttendanceStatus,
+  grade?: LessonGrade | null
 ) {
   const statusLine = {
     present: '🟢 Keldi',
@@ -28,7 +37,9 @@ export function buildTelegramAttendanceMessage(
     excused: '🔵 Sababli',
   }[status];
 
-  return `${formatDateShort(date)}\n\n${studentName}\n${statusLine}\n\n📌 Guruh: ${groupName}\n📍 Oxbridge academy`;
+  const gradeLine = grade ? `\n📊 Baho: ${gradeLabels[grade]}` : '';
+
+  return `${formatDateShort(date)}\n\n${studentName}\n${statusLine}${gradeLine}\n\n📌 Guruh: ${groupName}\n📍 Oxbridge academy`;
 }
 
 export async function sendTelegramMessage(

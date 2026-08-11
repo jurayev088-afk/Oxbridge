@@ -128,6 +128,16 @@ async function ensureSchemaMigrations() {
   `).catch(() => {});
 
   await pool.query(`
+    ALTER TABLE attendance ADD COLUMN IF NOT EXISTS grade VARCHAR(20);
+  `).catch(() => {});
+
+  await pool.query(`
+    ALTER TABLE attendance DROP CONSTRAINT IF EXISTS attendance_grade_check;
+    ALTER TABLE attendance ADD CONSTRAINT attendance_grade_check
+      CHECK (grade IS NULL OR grade IN ('excellent', 'good', 'no_homework'));
+  `).catch(() => {});
+
+  await pool.query(`
     ALTER TABLE student_payments ADD COLUMN IF NOT EXISTS bill_year INTEGER;
   `).catch(() => {});
 

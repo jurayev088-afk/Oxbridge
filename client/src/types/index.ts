@@ -177,6 +177,7 @@ export type GroupUpdatePayload = Partial<
 >;
 
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
+export type LessonGrade = 'excellent' | 'good' | 'no_homework';
 export type SmsTarget = 'parents' | 'student' | 'both';
 export type NotifyTarget = SmsTarget;
 
@@ -185,6 +186,7 @@ export interface AttendanceStudent {
   name: string;
   photoUrl?: string;
   status: AttendanceStatus;
+  grade?: LessonGrade | null;
 }
 
 export interface AttendanceTelegramResult {
