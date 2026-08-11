@@ -5,6 +5,7 @@ import { useNotifications } from '../context/NotificationContext';
 import { notificationMessages } from '../lib/notificationMessages';
 import { getPhoneForSubmit } from '../lib/formatInputs';
 import { PhoneInput } from './PhoneInput';
+import { PasswordInput } from './PasswordInput';
 import type { TeacherListItem } from '../types';
 
 interface AddTeacherModalProps {
@@ -74,7 +75,6 @@ export function AddTeacherModal({ open, onClose, onCreated }: AddTeacherModalPro
                 className="edit-input"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Masalan: Otabek Karimov"
               />
             </label>
             <label className="modal-field">
@@ -91,7 +91,6 @@ export function AddTeacherModal({ open, onClose, onCreated }: AddTeacherModalPro
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="email@oxbridge.uz"
               />
             </label>
             <label className="modal-field">
@@ -100,18 +99,14 @@ export function AddTeacherModal({ open, onClose, onCreated }: AddTeacherModalPro
                 className="edit-input"
                 value={form.login}
                 onChange={(e) => setForm({ ...form, login: e.target.value })}
-                placeholder="Masalan: otabek"
                 autoComplete="off"
               />
             </label>
             <label className="modal-field">
               <span>Parol (ixtiyoriy)</span>
-              <input
-                className="edit-input"
-                type="password"
+              <PasswordInput
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder="Kamida 4 ta belgi"
                 autoComplete="new-password"
               />
             </label>

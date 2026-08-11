@@ -129,7 +129,6 @@ export function LeadModal({
                 className="edit-input"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Masalan: Ali Valiyev"
                 autoFocus
               />
             </label>
@@ -180,7 +179,6 @@ export function LeadModal({
                 className="edit-input"
                 value={form.courseInterest}
                 onChange={(e) => setForm({ ...form, courseInterest: e.target.value })}
-                placeholder="General English, IELTS..."
               />
             </label>
 
@@ -190,7 +188,6 @@ export function LeadModal({
                 className="edit-input lead-note-input"
                 value={form.note}
                 onChange={(e) => setForm({ ...form, note: e.target.value })}
-                placeholder="Qo'shimcha ma'lumot..."
                 rows={3}
               />
             </label>

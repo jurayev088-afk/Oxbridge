@@ -99,7 +99,6 @@ export function AddGroupModal({ open, onClose, onCreated }: AddGroupModalProps) 
                 className="edit-input"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Masalan: Beginner B1"
               />
             </label>
 
@@ -109,7 +108,6 @@ export function AddGroupModal({ open, onClose, onCreated }: AddGroupModalProps) 
                 className="edit-input"
                 value={form.code}
                 onChange={(e) => setForm({ ...form, code: e.target.value })}
-                placeholder="Avtomatik beriladi"
               />
             </label>
 

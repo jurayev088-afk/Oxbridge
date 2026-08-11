@@ -17,7 +17,6 @@ export function MonthlyFeeFields({ value, onChange }: MonthlyFeeFieldsProps) {
       <AmountInput
         value={parseAmountDigits(value)}
         onChange={onChange}
-        placeholder="650 000"
       />
     </label>
   );

@@ -6,6 +6,7 @@ import { notificationMessages } from '../lib/notificationMessages';
 import { getPhoneForSubmit } from '../lib/formatInputs';
 import { resolveMonthlyFee } from './MonthlyFeeFields';
 import { PhoneInput } from './PhoneInput';
+import { PasswordInput } from './PasswordInput';
 import { MonthlyFeeFields } from './MonthlyFeeFields';
 import type { GroupListItem, StudentListItem } from '../types';
 
@@ -92,7 +93,6 @@ export function AddStudentListModal({ open, onClose, onCreated }: AddStudentList
                 className="edit-input"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Masalan: Sardor Karimov"
               />
             </label>
             <label className="modal-field">
@@ -109,7 +109,6 @@ export function AddStudentListModal({ open, onClose, onCreated }: AddStudentList
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="email@mail.uz"
               />
             </label>
             <label className="modal-field">
@@ -135,18 +134,14 @@ export function AddStudentListModal({ open, onClose, onCreated }: AddStudentList
                 className="edit-input"
                 value={form.login}
                 onChange={(e) => setForm({ ...form, login: e.target.value })}
-                placeholder="Masalan: sardor"
                 autoComplete="off"
               />
             </label>
             <label className="modal-field">
               <span>Parol (ixtiyoriy)</span>
-              <input
-                className="edit-input"
-                type="password"
+              <PasswordInput
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder="Kamida 4 ta belgi"
                 autoComplete="new-password"
               />
             </label>

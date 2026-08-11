@@ -150,9 +150,6 @@ async function ensureSchemaMigrations() {
 }
 
 async function ensureDirectorCredentials() {
-  const directorPassword = process.env.DIRECTOR_PASSWORD ?? 'xojayin123';
-  const directorHash = hashPassword(directorPassword);
-
   await pool.query(`UPDATE users SET name = 'Xojayin' WHERE id = 'director'`);
 
   const { rows } = await pool.query<{ login: string | null; password_hash: string | null }>(
@@ -163,8 +160,16 @@ async function ensureDirectorCredentials() {
 
   const login = rows[0].login;
   const passwordHash = rows[0].password_hash;
+  const needsCredentials = !login || !passwordHash;
+  const migratingLogin = login === 'boshliq';
 
-  if (login === 'boshliq') {
+  if (!needsCredentials && !migratingLogin) return;
+
+  const { resolveBootstrapPassword } = await import('./security');
+  const directorPassword = resolveBootstrapPassword('DIRECTOR_PASSWORD', 'xojayin123');
+  const directorHash = hashPassword(directorPassword);
+
+  if (migratingLogin) {
     await pool.query(
       `UPDATE users SET login = $1, password_hash = $2 WHERE id = 'director'`,
       ['xojayin', directorHash]
@@ -172,20 +177,14 @@ async function ensureDirectorCredentials() {
     return;
   }
 
-  const needsCredentials = !login || !passwordHash;
-  if (!needsCredentials) return;
-
   await pool.query(`UPDATE users SET login = $1, password_hash = $2 WHERE id = 'director'`, [
     'xojayin',
     directorHash,
   ]);
-  console.log('Xojayin login sozlandi: xojayin / xojayin123');
+  console.log('Xojayin login sozlandi: xojayin (parol env yoki dev default)');
 }
 
 async function ensureAdminCredentials() {
-  const adminPassword = process.env.ADMIN_PASSWORD ?? 'admin123';
-  const adminHash = hashPassword(adminPassword);
-
   const { rows } = await pool.query<{ login: string | null; password_hash: string | null }>(
     `SELECT login, password_hash FROM users WHERE id = 'admin'`
   );
@@ -195,11 +194,15 @@ async function ensureAdminCredentials() {
   const needsCredentials = !rows[0].login || !rows[0].password_hash;
   if (!needsCredentials) return;
 
+  const { resolveBootstrapPassword } = await import('./security');
+  const adminPassword = resolveBootstrapPassword('ADMIN_PASSWORD', 'admin123');
+  const adminHash = hashPassword(adminPassword);
+
   await pool.query(`UPDATE users SET login = $1, password_hash = $2 WHERE id = 'admin'`, [
     'admin',
     adminHash,
   ]);
-  console.log('Admin login sozlandi: admin / admin123');
+  console.log('Admin login sozlandi: admin (parol env yoki dev default)');
 }
 
 export default pool;

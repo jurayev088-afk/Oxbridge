@@ -154,7 +154,7 @@ export function Leads() {
                 <Search size={16} />
                 <input
                   type="text"
-                  placeholder="Ism, telefon yoki manba qidirish..."
+                  aria-label="Ism, telefon yoki manba qidirish"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />

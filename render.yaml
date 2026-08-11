@@ -29,3 +29,7 @@ services:
         value: oxbridgeacademy_bot
       - key: TELEGRAM_BOT_TOKEN
         sync: false
+      - key: AUTH_SECRET
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
+        sync: false

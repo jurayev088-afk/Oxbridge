@@ -92,7 +92,7 @@ export function Teachers() {
                 <Search size={16} />
                 <input
                   type="text"
-                  placeholder="Ism, telefon yoki email qidirish..."
+                  aria-label="Ism, telefon yoki email qidirish"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />

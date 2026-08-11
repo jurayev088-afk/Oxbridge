@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { KeyRound } from 'lucide-react';
 import { setUserCredentials } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
+import { PasswordInput } from './PasswordInput';
 import type { AppRole } from '../lib/roles';
 
 interface UserCredentialsSectionProps {
@@ -9,6 +10,7 @@ interface UserCredentialsSectionProps {
   userName: string;
   currentLogin?: string;
   actorRole: AppRole;
+  isOwnProfile?: boolean;
 }
 
 export function UserCredentialsSection({
@@ -16,6 +18,7 @@ export function UserCredentialsSection({
   userName,
   currentLogin,
   actorRole,
+  isOwnProfile = false,
 }: UserCredentialsSectionProps) {
   const { token } = useAuth();
   const [form, setForm] = useState({ login: currentLogin ?? '', password: '' });
@@ -37,7 +40,11 @@ export function UserCredentialsSection({
 
     try {
       await setUserCredentials(userId, form.login, form.password, token);
-      setMessage(`${userName} uchun login va parol saqlandi`);
+      setMessage(
+        isOwnProfile
+          ? 'Login va parol yangilandi'
+          : `${userName} uchun login va parol saqlandi`
+      );
       setForm((prev) => ({ ...prev, password: '' }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Saqlashda xatolik');
@@ -46,8 +53,9 @@ export function UserCredentialsSection({
     }
   }
 
-  const hint =
-    actorRole === 'director'
+  const hint = isOwnProfile
+    ? 'Xojayin o\'z login va parolini yangilaydi. Keyingi safar yangi ma\'lumotlar bilan kiring.'
+    : actorRole === 'director'
       ? 'Xojayin admin, o\'qituvchi va o\'quvchi uchun login va parol beradi.'
       : 'Admin o\'qituvchi va o\'quvchi uchun login va parol beradi.';
 
@@ -67,17 +75,13 @@ export function UserCredentialsSection({
               className="edit-input"
               value={form.login}
               onChange={(e) => setForm({ ...form, login: e.target.value })}
-              placeholder="Masalan: admin"
             />
           </label>
           <label className="modal-field">
             <span>Yangi parol</span>
-            <input
-              className="edit-input"
-              type="password"
+            <PasswordInput
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              placeholder="Kamida 4 ta belgi"
             />
           </label>
         </div>
@@ -86,7 +90,11 @@ export function UserCredentialsSection({
         {message && <p className="credentials-success">{message}</p>}
 
         <button type="submit" className="save-btn" disabled={saving}>
-          {saving ? 'Saqlanmoqda...' : 'Login va parolni saqlash'}
+          {saving
+            ? 'Saqlanmoqda...'
+            : isOwnProfile
+              ? 'Parolni yangilash'
+              : 'Login va parolni saqlash'}
         </button>
       </form>
     </div>

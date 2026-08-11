@@ -4,6 +4,7 @@ import { createAdmin } from '../api/client';
 import { useNotifications } from '../context/NotificationContext';
 import { getPhoneForSubmit } from '../lib/formatInputs';
 import { PhoneInput } from './PhoneInput';
+import { PasswordInput } from './PasswordInput';
 import type { AdminListItem } from '../types';
 
 interface AddAdminModalProps {
@@ -88,7 +89,6 @@ export function AddAdminModal({ open, onClose, onCreated }: AddAdminModalProps) 
                 className="edit-input"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Masalan: Aziz Adminov"
               />
             </label>
             <label className="modal-field">
@@ -105,7 +105,6 @@ export function AddAdminModal({ open, onClose, onCreated }: AddAdminModalProps) 
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="admin@oxbridge.uz"
               />
             </label>
             <label className="modal-field">
@@ -114,18 +113,14 @@ export function AddAdminModal({ open, onClose, onCreated }: AddAdminModalProps) 
                 className="edit-input"
                 value={form.login}
                 onChange={(e) => setForm({ ...form, login: e.target.value })}
-                placeholder="Masalan: admin2"
                 autoComplete="off"
               />
             </label>
             <label className="modal-field">
               <span>Parol</span>
-              <input
-                className="edit-input"
-                type="password"
+              <PasswordInput
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder="Kamida 4 ta belgi"
                 autoComplete="new-password"
               />
             </label>

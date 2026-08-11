@@ -136,7 +136,7 @@ export function AddStudentModal({ open, groupId, onClose, onAdded }: AddStudentM
                 <Search size={16} />
                 <input
                   type="text"
-                  placeholder="Ism yoki telefon bo'yicha qidirish..."
+                  aria-label="Ism yoki telefon bo'yicha qidirish"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -181,7 +181,6 @@ export function AddStudentModal({ open, groupId, onClose, onAdded }: AddStudentM
                   className="edit-input"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Masalan: Sardor Karimov"
                 />
               </label>
               <label className="modal-field modal-field-full">

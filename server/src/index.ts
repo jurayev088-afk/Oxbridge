@@ -1,6 +1,5 @@
 import './env';
 import express from 'express';
-import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import pool, { initDb } from './db';
@@ -35,15 +34,36 @@ import {
   setUserCredentials,
   fetchTeacherGroups,
   fetchStudentAttendanceHistory,
-  isTeacherOfGroup,
 } from './authDb';
 import { canManageCredentials, canCreateRole } from './roles';
 import { optionalAuth, requireAuth, requireRole } from './authMiddleware';
+import {
+  clearLoginAttempts,
+  createCorsMiddleware,
+  loginRateLimit,
+  verifyTelegramWebhook,
+} from './security';
+import {
+  canEditGroup,
+  canEditUser,
+  canViewGroup,
+  canViewUser,
+  filterStudentSelfUpdate,
+  resolveGroupId,
+} from './accessControl';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
 
-app.use(cors());
+app.set('trust proxy', 1);
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
+app.use(createCorsMiddleware());
 app.use(express.json({ limit: '10mb' }));
 app.use(optionalAuth);
 
@@ -71,7 +91,7 @@ app.get('/api/health', async (_req, res) => {
   });
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', loginRateLimit, async (req, res) => {
   const { login, password } = req.body;
   if (!login?.trim() || !password) {
     return res.status(400).json({ error: 'Login va parol kerak' });
@@ -81,6 +101,7 @@ app.post('/api/auth/login', async (req, res) => {
     const user = await authenticateUser(login, password);
     if (!user) return res.status(401).json({ error: 'Login yoki parol noto\'g\'ri' });
 
+    clearLoginAttempts(req, login);
     const token = signToken({ userId: user.id, role: user.role });
     res.json({ token, user });
   } catch (err) {
@@ -88,7 +109,19 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-app.get('/api/auth/me', requireAuth, async (req, res) => {
+app.post('/api/telegram/webhook', verifyTelegramWebhook, async (req, res) => {
+  res.sendStatus(200);
+  try {
+    await handleTelegramUpdate(req.body);
+  } catch (err) {
+    console.error('[Telegram webhook]', err);
+  }
+});
+
+app.use('/api', requireAuth);
+app.use('/api', requireDatabase);
+
+app.get('/api/auth/me', async (req, res) => {
   try {
     const user = await getAuthUserById(req.auth!.userId);
     if (!user) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
@@ -98,7 +131,7 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/api/me/groups', requireAuth, requireRole('teacher'), async (req, res) => {
+app.get('/api/me/groups', requireRole('teacher'), async (req, res) => {
   try {
     res.json(await fetchTeacherGroups(req.auth!.userId));
   } catch (err) {
@@ -106,7 +139,7 @@ app.get('/api/me/groups', requireAuth, requireRole('teacher'), async (req, res) 
   }
 });
 
-app.get('/api/me/attendance', requireAuth, requireRole('student'), async (req, res) => {
+app.get('/api/me/attendance', requireRole('student'), async (req, res) => {
   try {
     res.json(await fetchStudentAttendanceHistory(req.auth!.userId));
   } catch (err) {
@@ -114,7 +147,7 @@ app.get('/api/me/attendance', requireAuth, requireRole('student'), async (req, r
   }
 });
 
-app.put('/api/users/:id/credentials', requireAuth, async (req, res) => {
+app.put('/api/users/:id/credentials', async (req, res) => {
   const { id } = req.params;
   const { login, password } = req.body;
 
@@ -129,7 +162,8 @@ app.put('/api/users/:id/credentials', requireAuth, async (req, res) => {
     }
 
     const targetRole = target.rows[0].role as 'director' | 'admin' | 'teacher' | 'student';
-    if (!canManageCredentials(req.auth!.role, targetRole)) {
+    const isDirectorSelf = req.auth!.userId === id && req.auth!.role === 'director';
+    if (!isDirectorSelf && !canManageCredentials(req.auth!.role, targetRole)) {
       return res.status(403).json({
         error:
           req.auth!.role === 'director'
@@ -146,7 +180,7 @@ app.put('/api/users/:id/credentials', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/api/sms/status', (_req, res) => {
+app.get('/api/sms/status', requireRole('director', 'admin', 'teacher'), (_req, res) => {
   const mode = getSmsMode();
   if (mode === 'eskiz') {
     return res.json({
@@ -169,7 +203,7 @@ app.get('/api/sms/status', (_req, res) => {
   });
 });
 
-app.get('/api/telegram/status', (_req, res) => {
+app.get('/api/telegram/status', requireRole('director', 'admin', 'teacher'), (_req, res) => {
   const username = getTelegramBotUsername();
   const linkedPhones = getLinkedPhonesCount();
   if (isTelegramConfigured()) {
@@ -190,18 +224,7 @@ app.get('/api/telegram/status', (_req, res) => {
   });
 });
 
-app.post('/api/telegram/webhook', async (req, res) => {
-  res.sendStatus(200);
-  try {
-    await handleTelegramUpdate(req.body);
-  } catch (err) {
-    console.error('[Telegram webhook]', err);
-  }
-});
-
-app.use('/api', requireDatabase);
-
-app.get('/api/dashboard/stats', async (_req, res) => {
+app.get('/api/dashboard/stats', requireRole('director', 'admin'), async (_req, res) => {
   try {
     res.json(await fetchDashboardStats());
   } catch (err) {
@@ -209,7 +232,7 @@ app.get('/api/dashboard/stats', async (_req, res) => {
   }
 });
 
-app.get('/api/dashboard/schedule', async (req, res) => {
+app.get('/api/dashboard/schedule', requireRole('director', 'admin'), async (req, res) => {
   const dayType = (req.query.dayType as string) || 'even';
 
   try {
@@ -256,7 +279,7 @@ app.get('/api/dashboard/schedule', async (req, res) => {
   }
 });
 
-app.get('/api/groups', async (_req, res) => {
+app.get('/api/groups', requireRole('director', 'admin'), async (_req, res) => {
 
 
   try {
@@ -287,7 +310,7 @@ app.get('/api/groups', async (_req, res) => {
   }
 });
 
-app.get('/api/teachers', async (_req, res) => {
+app.get('/api/teachers', requireRole('director', 'admin'), async (_req, res) => {
 
 
   try {
@@ -319,7 +342,7 @@ app.get('/api/teachers', async (_req, res) => {
   }
 });
 
-app.post('/api/teachers', requireAuth, requireRole('director', 'admin'), async (req, res) => {
+app.post('/api/teachers', requireRole('director', 'admin'), async (req, res) => {
   if (!canCreateRole(req.auth!.role, 'teacher')) {
     return res.status(403).json({ error: 'O\'qituvchi qo\'shishga ruxsat yo\'q' });
   }
@@ -365,7 +388,7 @@ app.post('/api/teachers', requireAuth, requireRole('director', 'admin'), async (
   }
 });
 
-app.get('/api/admins', requireAuth, requireRole('director'), async (_req, res) => {
+app.get('/api/admins', requireRole('director'), async (_req, res) => {
   try {
     const result = await pool.query(`
       SELECT u.id, u.name, u.phone, u.email, COALESCE(u.photo_url, '') AS photo_url,
@@ -391,7 +414,7 @@ app.get('/api/admins', requireAuth, requireRole('director'), async (_req, res) =
   }
 });
 
-app.post('/api/admins', requireAuth, requireRole('director'), async (req, res) => {
+app.post('/api/admins', requireRole('director'), async (req, res) => {
   const { name, phone, email, login, password } = req.body;
 
   if (!name?.trim()) {
@@ -432,7 +455,7 @@ app.post('/api/admins', requireAuth, requireRole('director'), async (req, res) =
   }
 });
 
-app.delete('/api/admins/:id', requireAuth, requireRole('director'), async (req, res) => {
+app.delete('/api/admins/:id', requireRole('director'), async (req, res) => {
   const { id } = req.params;
 
   if (id === 'director') {
@@ -456,7 +479,7 @@ app.delete('/api/admins/:id', requireAuth, requireRole('director'), async (req, 
   }
 });
 
-app.put('/api/teachers/:id', async (req, res) => {
+app.put('/api/teachers/:id', requireRole('director', 'admin'), async (req, res) => {
   const { id } = req.params;
   const { name, phone, email } = req.body;
 
@@ -500,7 +523,7 @@ app.put('/api/teachers/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/teachers/:id', async (req, res) => {
+app.delete('/api/teachers/:id', requireRole('director', 'admin'), async (req, res) => {
   const { id } = req.params;
 
 
@@ -518,7 +541,7 @@ app.delete('/api/teachers/:id', async (req, res) => {
   }
 });
 
-app.post('/api/groups', async (req, res) => {
+app.post('/api/groups', requireRole('director', 'admin'), async (req, res) => {
   const body = req.body;
 
 
@@ -608,12 +631,17 @@ app.post('/api/groups', async (req, res) => {
   }
 });
 
-app.get('/api/groups/:id', async (req, res) => {
+app.get('/api/groups/:id', requireRole('director', 'admin', 'teacher'), async (req, res) => {
   const { id } = req.params;
 
-
-
   try {
+    const groupId = await resolveGroupId(id);
+    if (!groupId) return res.status(404).json({ error: 'Guruh topilmadi' });
+
+    if (!(await canViewGroup(req.auth!, groupId))) {
+      return res.status(403).json({ error: 'Bu guruhga ruxsat yo\'q' });
+    }
+
     const result = await pool.query(
       `SELECT g.*,
         json_agg(json_build_object(
@@ -634,21 +662,17 @@ app.get('/api/groups/:id', async (req, res) => {
   }
 });
 
-app.get('/api/groups/:id/attendance', async (req, res) => {
+app.get('/api/groups/:id/attendance', requireRole('director', 'admin', 'teacher'), async (req, res) => {
   const { id } = req.params;
   const date = normalizeDateString(req.query.date) || todayISO();
 
-
-
   try {
-    const groupResult = await pool.query(
-      'SELECT id FROM groups WHERE id = $1 OR code = $1 LIMIT 1',
-      [id]
-    );
-    if (groupResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Guruh topilmadi' });
+    const groupId = await resolveGroupId(id);
+    if (!groupId) return res.status(404).json({ error: 'Guruh topilmadi' });
+
+    if (!(await canViewGroup(req.auth!, groupId))) {
+      return res.status(403).json({ error: 'Bu guruhga ruxsat yo\'q' });
     }
-    const groupId = groupResult.rows[0].id;
 
     const studentsResult = await pool.query(
       `SELECT u.id, u.name, COALESCE(u.photo_url, '') AS photo_url
@@ -686,7 +710,7 @@ app.get('/api/groups/:id/attendance', async (req, res) => {
   }
 });
 
-app.put('/api/groups/:id/attendance', async (req, res) => {
+app.put('/api/groups/:id/attendance', requireRole('director', 'admin', 'teacher'), async (req, res) => {
   const { id } = req.params;
   const {
     date,
@@ -749,9 +773,8 @@ app.put('/api/groups/:id/attendance', async (req, res) => {
       });
     }
 
-    if (req.auth?.role === 'teacher') {
-      const allowed = await isTeacherOfGroup(req.auth.userId, groupRow.id);
-      if (!allowed) return res.status(403).json({ error: 'Bu guruh sizga tegishli emas' });
+    if (!(await canEditGroup(req.auth!, groupRow.id))) {
+      return res.status(403).json({ error: 'Bu guruh sizga tegishli emas' });
     }
 
     for (const record of records) {
@@ -835,7 +858,7 @@ app.put('/api/groups/:id/attendance', async (req, res) => {
   }
 });
 
-app.get('/api/students/list', async (req, res) => {
+app.get('/api/students/list', requireRole('director', 'admin'), async (req, res) => {
   const now = new Date();
   const year = Number(req.query.year) || now.getFullYear();
   const month = Number(req.query.month) || now.getMonth() + 1;
@@ -847,7 +870,7 @@ app.get('/api/students/list', async (req, res) => {
   }
 });
 
-app.post('/api/students', requireAuth, requireRole('director', 'admin'), async (req, res) => {
+app.post('/api/students', requireRole('director', 'admin'), async (req, res) => {
   if (!canCreateRole(req.auth!.role, 'student')) {
     return res.status(403).json({ error: 'O\'quvchi qo\'shishga ruxsat yo\'q' });
   }
@@ -913,7 +936,7 @@ app.post('/api/students', requireAuth, requireRole('director', 'admin'), async (
   }
 });
 
-app.put('/api/students/:id', async (req, res) => {
+app.put('/api/students/:id', requireRole('director', 'admin'), async (req, res) => {
   const { id } = req.params;
   const { name, phone, email, groupId, paymentDue, monthlyFee } = req.body;
   const fee =
@@ -974,7 +997,7 @@ app.put('/api/students/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/students/:id', async (req, res) => {
+app.delete('/api/students/:id', requireRole('director', 'admin'), async (req, res) => {
   const { id } = req.params;
 
 
@@ -991,7 +1014,7 @@ app.delete('/api/students/:id', async (req, res) => {
   }
 });
 
-app.get('/api/students', async (req, res) => {
+app.get('/api/students', requireRole('director', 'admin'), async (req, res) => {
   const excludeGroup = req.query.excludeGroup as string | undefined;
 
 
@@ -1031,7 +1054,7 @@ app.get('/api/students', async (req, res) => {
   }
 });
 
-app.post('/api/groups/:id/students', async (req, res) => {
+app.post('/api/groups/:id/students', requireRole('director', 'admin'), async (req, res) => {
   const { id } = req.params;
   const { userId, name, phone, email } = req.body;
 
@@ -1093,9 +1116,11 @@ app.post('/api/groups/:id/students', async (req, res) => {
 app.get('/api/users/:id', async (req, res) => {
   const { id } = req.params;
 
-
-
   try {
+    if (!(await canViewUser(req.auth!, id))) {
+      return res.status(403).json({ error: 'Ruxsat yo\'q' });
+    }
+
     const result = await pool.query(
       `SELECT u.*, g.name AS group_name
        FROM users u
@@ -1128,11 +1153,20 @@ app.get('/api/users/:id', async (req, res) => {
 
 app.put('/api/users/:id', async (req, res) => {
   const { id } = req.params;
-  const body = req.body;
-
-
+  let body = req.body as Record<string, unknown>;
 
   try {
+    if (!(await canEditUser(req.auth!, id))) {
+      return res.status(403).json({ error: 'Ruxsat yo\'q' });
+    }
+
+    if (req.auth!.role === 'student') {
+      body = filterStudentSelfUpdate(body);
+      if (Object.keys(body).length === 0) {
+        return res.status(400).json({ error: 'Yangilash uchun ruxsat berilgan maydon yo\'q' });
+      }
+    }
+
     const fields: string[] = [];
     const values: unknown[] = [];
     let i = 1;
@@ -1204,7 +1238,7 @@ app.put('/api/users/:id', async (req, res) => {
   }
 });
 
-app.put('/api/groups/:id', async (req, res) => {
+app.put('/api/groups/:id', requireRole('director', 'admin'), async (req, res) => {
   const { id } = req.params;
   const body = req.body;
 
@@ -1302,7 +1336,7 @@ app.put('/api/groups/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/groups/:id', async (req, res) => {
+app.delete('/api/groups/:id', requireRole('director', 'admin'), async (req, res) => {
   const { id } = req.params;
 
 
@@ -1318,7 +1352,7 @@ app.delete('/api/groups/:id', async (req, res) => {
   }
 });
 
-app.get('/api/finance/overview', async (req, res) => {
+app.get('/api/finance/overview', requireRole('director', 'admin'), async (req, res) => {
   const year = req.query.year ? Number(req.query.year) : undefined;
   const month = req.query.month ? Number(req.query.month) : undefined;
 
@@ -1331,7 +1365,7 @@ app.get('/api/finance/overview', async (req, res) => {
   }
 });
 
-app.post('/api/finance/transactions', async (req, res) => {
+app.post('/api/finance/transactions', requireRole('director', 'admin'), async (req, res) => {
   const { type, amount, method, description, transactionDate } = req.body;
 
   if (!type || !amount) {
@@ -1357,7 +1391,7 @@ app.post('/api/finance/transactions', async (req, res) => {
   }
 });
 
-app.get('/api/finance/student-payments', async (req, res) => {
+app.get('/api/finance/student-payments', requireRole('director', 'admin'), async (req, res) => {
   const year = Number(req.query.year);
   const month = Number(req.query.month);
 
@@ -1372,7 +1406,7 @@ app.get('/api/finance/student-payments', async (req, res) => {
   }
 });
 
-app.post('/api/finance/student-payments', async (req, res) => {
+app.post('/api/finance/student-payments', requireRole('director', 'admin'), async (req, res) => {
   const { studentId, amount, method, paymentDate, note, billYear, billMonth } = req.body;
 
   if (!studentId || !amount) {
@@ -1398,7 +1432,7 @@ app.post('/api/finance/student-payments', async (req, res) => {
   }
 });
 
-app.get('/api/finance/monthly-bills', async (req, res) => {
+app.get('/api/finance/monthly-bills', requireRole('director', 'admin'), async (req, res) => {
   const year = Number(req.query.year);
   const month = Number(req.query.month);
 
@@ -1413,7 +1447,7 @@ app.get('/api/finance/monthly-bills', async (req, res) => {
   }
 });
 
-app.put('/api/finance/monthly-bills/:id', async (req, res) => {
+app.put('/api/finance/monthly-bills/:id', requireRole('director', 'admin'), async (req, res) => {
   const billId = Number(req.params.id);
   const { expectedAmount } = req.body;
 
@@ -1435,7 +1469,7 @@ app.put('/api/finance/monthly-bills/:id', async (req, res) => {
   }
 });
 
-app.get('/api/finance/monthly-expenses', async (req, res) => {
+app.get('/api/finance/monthly-expenses', requireRole('director', 'admin'), async (req, res) => {
   const year = Number(req.query.year);
   const month = Number(req.query.month);
 
@@ -1452,7 +1486,7 @@ app.get('/api/finance/monthly-expenses', async (req, res) => {
   }
 });
 
-app.put('/api/finance/monthly-expenses', async (req, res) => {
+app.put('/api/finance/monthly-expenses', requireRole('director', 'admin'), async (req, res) => {
   const { year, month, teacherSalaries, electricity, electricityNote } = req.body;
 
   if (!year || !month) {
@@ -1475,7 +1509,7 @@ app.put('/api/finance/monthly-expenses', async (req, res) => {
   }
 });
 
-app.get('/api/leads', async (_req, res) => {
+app.get('/api/leads', requireRole('director', 'admin'), async (_req, res) => {
   try {
     res.json(await listLeads());
   } catch (err) {
@@ -1483,7 +1517,7 @@ app.get('/api/leads', async (_req, res) => {
   }
 });
 
-app.post('/api/leads', async (req, res) => {
+app.post('/api/leads', requireRole('director', 'admin'), async (req, res) => {
   const { name, phone, source, status, courseInterest, note } = req.body;
   if (!name?.trim()) {
     return res.status(400).json({ error: 'Ism kiritilishi shart' });
@@ -1500,7 +1534,7 @@ app.post('/api/leads', async (req, res) => {
   }
 });
 
-app.put('/api/leads/:id', async (req, res) => {
+app.put('/api/leads/:id', requireRole('director', 'admin'), async (req, res) => {
   const { id } = req.params;
   const { name, phone, source, status, courseInterest, note } = req.body;
 
@@ -1519,7 +1553,7 @@ app.put('/api/leads/:id', async (req, res) => {
   }
 });
 
-app.post('/api/leads/:id/convert', async (req, res) => {
+app.post('/api/leads/:id/convert', requireRole('director', 'admin'), async (req, res) => {
   const { id } = req.params;
   const { groupId, paymentDue, email } = req.body;
 
@@ -1539,7 +1573,7 @@ app.post('/api/leads/:id/convert', async (req, res) => {
   }
 });
 
-app.delete('/api/leads/:id', async (req, res) => {
+app.delete('/api/leads/:id', requireRole('director', 'admin'), async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -1551,7 +1585,7 @@ app.delete('/api/leads/:id', async (req, res) => {
   }
 });
 
-app.get('/api/branches', async (_req, res) => {
+app.get('/api/branches', requireRole('director', 'admin'), async (_req, res) => {
   try {
     const result = await pool.query('SELECT id, name FROM branches ORDER BY id');
     res.json(result.rows);

@@ -84,7 +84,7 @@ export function Groups() {
                 <Search size={16} />
                 <input
                   type="text"
-                  placeholder="Guruh yoki o'qituvchi qidirish..."
+                  aria-label="Guruh yoki o'qituvchi qidirish"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />

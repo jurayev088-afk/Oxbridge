@@ -55,7 +55,7 @@ export function Header() {
           <div className="header-center">
             <div className="search-box">
               <Search size={16} className="search-icon" />
-              <input type="text" placeholder="Qidirish..." aria-label="Qidirish" />
+              <input type="text" aria-label="Qidirish" />
             </div>
           </div>
         )}

@@ -1246,6 +1246,37 @@ body {
   outline: none;
 }
 
+.password-input-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.password-input-wrap .edit-input {
+  width: 100%;
+  padding-right: 2.75rem;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+
+.password-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
 .login-submit {
   width: 100%;
   display: inline-flex;

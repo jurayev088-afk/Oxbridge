@@ -21,15 +21,9 @@ import type {
   SmsStatus,
   TelegramStatus,
 } from '../types';
-import { getStoredToken } from './auth';
+import { authHeaders } from './auth';
 
-function authHeaders(extra?: Record<string, string>) {
-  const token = getStoredToken();
-  return {
-    ...(extra ?? {}),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+export { authHeaders };
 
 async function readError(res: Response, fallback: string) {
   const body = await res.json().catch(() => ({}));
@@ -37,25 +31,25 @@ async function readError(res: Response, fallback: string) {
 }
 
 export async function fetchStats(): Promise<DashboardStats> {
-  const res = await fetch('/api/dashboard/stats');
+  const res = await fetch('/api/dashboard/stats', { headers: authHeaders() });
   if (!res.ok) throw new Error(await readError(res, 'Statistikani yuklab bo\'lmadi'));
   return res.json();
 }
 
 export async function fetchSchedule(dayType: DayType): Promise<ScheduleEntry[]> {
-  const res = await fetch(`/api/dashboard/schedule?dayType=${dayType}`);
+  const res = await fetch(`/api/dashboard/schedule?dayType=${dayType}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(await readError(res, 'Jadvalni yuklab bo\'lmadi'));
   return res.json();
 }
 
 export async function fetchGroups(): Promise<GroupListItem[]> {
-  const res = await fetch('/api/groups');
+  const res = await fetch('/api/groups', { headers: authHeaders() });
   if (!res.ok) throw new Error(await readError(res, 'Guruhlarni yuklab bo\'lmadi'));
   return res.json();
 }
 
 export async function fetchTeachers(): Promise<TeacherListItem[]> {
-  const res = await fetch('/api/teachers');
+  const res = await fetch('/api/teachers', { headers: authHeaders() });
   if (!res.ok) throw new Error(await readError(res, 'O\'qituvchilarni yuklab bo\'lmadi'));
   return res.json();
 }
@@ -84,7 +78,7 @@ export async function updateTeacher(
 ): Promise<TeacherListItem | null> {
   const res = await fetch(`/api/teachers/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(data),
   });
   if (!res.ok) return null;
@@ -92,7 +86,7 @@ export async function updateTeacher(
 }
 
 export async function deleteTeacher(id: string): Promise<boolean> {
-  const res = await fetch(`/api/teachers/${id}`, { method: 'DELETE' });
+  const res = await fetch(`/api/teachers/${id}`, { method: 'DELETE', headers: authHeaders() });
   return res.ok;
 }
 
@@ -135,7 +129,7 @@ export async function fetchStudentsList(year?: number, month?: number): Promise<
   if (year) params.set('year', String(year));
   if (month) params.set('month', String(month));
   const query = params.toString();
-  const res = await fetch(`/api/students/list${query ? `?${query}` : ''}`);
+  const res = await fetch(`/api/students/list${query ? `?${query}` : ''}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(await readError(res, 'O\'quvchilarni yuklab bo\'lmadi'));
   return res.json();
 }
@@ -174,7 +168,7 @@ export async function updateStudentRecord(
 ): Promise<StudentListItem | null> {
   const res = await fetch(`/api/students/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(data),
   });
   if (!res.ok) return null;
@@ -182,7 +176,7 @@ export async function updateStudentRecord(
 }
 
 export async function deleteStudent(id: string): Promise<boolean> {
-  const res = await fetch(`/api/students/${id}`, { method: 'DELETE' });
+  const res = await fetch(`/api/students/${id}`, { method: 'DELETE', headers: authHeaders() });
   return res.ok;
 }
 
@@ -202,7 +196,7 @@ export async function createGroup(data: {
   };
   const res = await fetch('/api/groups', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload),
   });
   const body = await res.json().catch(() => ({}));
@@ -213,13 +207,13 @@ export async function createGroup(data: {
 }
 
 export async function fetchGroup(id: string): Promise<Group | null> {
-  const res = await fetch(`/api/groups/${id}`);
+  const res = await fetch(`/api/groups/${id}`, { headers: authHeaders() });
   if (!res.ok) return null;
   return res.json();
 }
 
 export async function fetchUser(id: string): Promise<User | null> {
-  const res = await fetch(`/api/users/${id}`);
+  const res = await fetch(`/api/users/${id}`, { headers: authHeaders() });
   if (!res.ok) return null;
   return res.json();
 }
@@ -227,7 +221,7 @@ export async function fetchUser(id: string): Promise<User | null> {
 export async function updateUser(id: string, data: UserUpdatePayload): Promise<User | null> {
   const res = await fetch(`/api/users/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(data),
   });
   if (!res.ok) return null;
@@ -237,7 +231,7 @@ export async function updateUser(id: string, data: UserUpdatePayload): Promise<U
 export async function updateGroup(id: string, data: GroupUpdatePayload): Promise<Group | null> {
   const res = await fetch(`/api/groups/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(data),
   });
   if (!res.ok) return null;
@@ -245,13 +239,13 @@ export async function updateGroup(id: string, data: GroupUpdatePayload): Promise
 }
 
 export async function deleteGroup(id: string): Promise<boolean> {
-  const res = await fetch(`/api/groups/${id}`, { method: 'DELETE' });
+  const res = await fetch(`/api/groups/${id}`, { method: 'DELETE', headers: authHeaders() });
   return res.ok;
 }
 
 export async function fetchAvailableStudents(excludeGroupId?: string): Promise<StudentOption[]> {
   const query = excludeGroupId ? `?excludeGroup=${encodeURIComponent(excludeGroupId)}` : '';
-  const res = await fetch(`/api/students${query}`);
+  const res = await fetch(`/api/students${query}`, { headers: authHeaders() });
   if (!res.ok) return [];
   return res.json();
 }
@@ -262,7 +256,7 @@ export async function addStudentToGroup(
 ): Promise<Group | null> {
   const res = await fetch(`/api/groups/${groupId}/students`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload),
   });
   if (!res.ok) return null;
@@ -270,19 +264,21 @@ export async function addStudentToGroup(
 }
 
 export async function fetchTelegramStatus(): Promise<TelegramStatus> {
-  const res = await fetch('/api/telegram/status');
+  const res = await fetch('/api/telegram/status', { headers: authHeaders() });
   if (!res.ok) throw new Error('failed');
   return res.json();
 }
 
 export async function fetchSmsStatus(): Promise<SmsStatus> {
-  const res = await fetch('/api/sms/status');
+  const res = await fetch('/api/sms/status', { headers: authHeaders() });
   if (!res.ok) throw new Error('failed');
   return res.json();
 }
 
 export async function fetchGroupAttendance(groupId: string, date: string): Promise<GroupAttendance | null> {
-  const res = await fetch(`/api/groups/${groupId}/attendance?date=${encodeURIComponent(date)}`);
+  const res = await fetch(`/api/groups/${groupId}/attendance?date=${encodeURIComponent(date)}`, {
+    headers: authHeaders(),
+  });
   if (!res.ok) return null;
   return res.json();
 }
@@ -317,7 +313,7 @@ export async function saveGroupAttendance(
 }
 
 export async function fetchBranches(): Promise<Branch[]> {
-  const res = await fetch('/api/branches');
+  const res = await fetch('/api/branches', { headers: authHeaders() });
   if (!res.ok) throw new Error(await readError(res, 'Filiallarni yuklab bo\'lmadi'));
   return res.json();
 }

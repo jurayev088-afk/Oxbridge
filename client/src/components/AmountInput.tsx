@@ -10,7 +10,6 @@ export function AmountInput({
   value,
   onChange,
   className = 'edit-input',
-  placeholder = '850 000',
   ...rest
 }: AmountInputProps) {
   return (
@@ -19,7 +18,6 @@ export function AmountInput({
       inputMode="numeric"
       value={formatAmountDisplay(value)}
       onChange={(e) => onChange(parseAmountDigits(e.target.value))}
-      placeholder={placeholder}
       {...rest}
     />
   );

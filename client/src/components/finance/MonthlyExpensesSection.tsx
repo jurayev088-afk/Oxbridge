@@ -106,7 +106,6 @@ export function MonthlyExpensesSection({ year, month, periodLabel, onSaved }: Mo
                 <AmountInput
                   className="finance-expense-input edit-input"
                   value={teacher.amount || ''}
-                  placeholder="0"
                   onChange={(raw) => {
                     const next = {
                       ...data,
@@ -134,7 +133,6 @@ export function MonthlyExpensesSection({ year, month, periodLabel, onSaved }: Mo
             <AmountInput
               className="finance-expense-input edit-input"
               value={displayData.electricity || ''}
-              placeholder="0"
               onChange={(raw) => {
                 const next = { ...data, electricity: parseAmountNumber(raw) };
                 setData(updateTotals(next));

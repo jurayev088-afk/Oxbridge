@@ -25,14 +25,12 @@ function formatDate(value: string | null) {
 }
 
 function getExpectedAmount(bill: MonthlyStudentBill, expectedAmounts: Record<number, string>) {
-  const raw = expectedAmounts[bill.id];
-  if (raw != null) return raw;
+  if (bill.id in expectedAmounts) return expectedAmounts[bill.id];
   return String(bill.expectedAmount ?? '');
 }
 
 function getPayAmount(bill: MonthlyStudentBill, payAmounts: Record<number, string>) {
-  const raw = payAmounts[bill.id];
-  if (raw != null && raw !== '') return raw;
+  if (bill.id in payAmounts) return payAmounts[bill.id];
   const remaining = bill.remainingAmount ?? Math.max(0, bill.expectedAmount - (bill.paidAmount ?? 0));
   return remaining > 0 ? String(remaining) : String(bill.expectedAmount || '');
 }
@@ -242,7 +240,6 @@ export function MonthlyStudentPaymentsTable({
                                   [bill.id]: raw,
                                 }))
                               }
-                              placeholder="650 000"
                             />
                             <button
                               type="button"
@@ -269,7 +266,6 @@ export function MonthlyStudentPaymentsTable({
                                 [bill.id]: raw,
                               }))
                             }
-                            placeholder={String(remaining || '')}
                           />
                           <button
                             type="button"

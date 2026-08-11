@@ -196,7 +196,6 @@ export function QuickPaymentModal({
                 <AmountInput
                   value={form.amount}
                   onChange={(amount) => setForm({ ...form, amount })}
-                  placeholder="850 000"
                 />
               </label>
 
@@ -231,7 +230,6 @@ export function QuickPaymentModal({
                   className="edit-input"
                   value={form.note}
                   onChange={(e) => setForm({ ...form, note: e.target.value })}
-                  placeholder="Masalan: Yanvar oyi uchun"
                 />
               </label>
             </div>

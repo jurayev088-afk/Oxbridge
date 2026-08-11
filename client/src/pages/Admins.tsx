@@ -94,7 +94,7 @@ export function Admins() {
                 <Search size={16} />
                 <input
                   type="text"
-                  placeholder="Ism, login yoki telefon qidirish..."
+                  aria-label="Ism, login yoki telefon qidirish"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />

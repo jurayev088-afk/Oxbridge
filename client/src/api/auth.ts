@@ -16,6 +16,14 @@ export function getStoredToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+export function authHeaders(extra?: Record<string, string>) {
+  const token = getStoredToken();
+  return {
+    ...(extra ?? {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
 export function setStoredToken(token: string | null) {
   if (token) localStorage.setItem(TOKEN_KEY, token);
   else localStorage.removeItem(TOKEN_KEY);

@@ -155,10 +155,10 @@ export function UserAccount() {
   }
 
   const canEdit = hasAdminAccess(authUser?.role) || authUser?.id === user.id;
+  const isDirectorOwnProfile = authUser?.role === 'director' && authUser.id === user.id;
   const showCredentials =
     authUser != null &&
-    authUser.id !== user.id &&
-    canManageCredentials(authUser.role, user.role);
+    (isDirectorOwnProfile || canManageCredentials(authUser.role, user.role));
 
   const display = editing ? form : user;
 
@@ -204,7 +204,6 @@ export function UserAccount() {
                   className="edit-input title-input"
                   value={form.name}
                   onChange={(e) => updateField('name', e.target.value)}
-                  placeholder="Ism"
                 />
               ) : (
                 <h1 className="account-title">{user.name}</h1>
@@ -255,7 +254,6 @@ export function UserAccount() {
                     className="edit-input"
                     value={form.address ?? ''}
                     onChange={(e) => updateField('address', e.target.value)}
-                    placeholder="Manzilni kiriting"
                   />
                 ) : (
                   <span className="info-value">{user.address || '—'}</span>
@@ -359,7 +357,6 @@ export function UserAccount() {
                         type="tel"
                         value={form.fatherPhone ?? ''}
                         onChange={(e) => updateField('fatherPhone', e.target.value)}
-                        placeholder="+998 90 123 45 67"
                       />
                     ) : (
                       <span className="info-value">{user.fatherPhone || '—'}</span>
@@ -391,7 +388,6 @@ export function UserAccount() {
                         type="tel"
                         value={form.motherPhone ?? ''}
                         onChange={(e) => updateField('motherPhone', e.target.value)}
-                        placeholder="+998 90 123 45 67"
                       />
                     ) : (
                       <span className="info-value">{user.motherPhone || '—'}</span>
@@ -469,6 +465,7 @@ export function UserAccount() {
               userName={user.name}
               currentLogin={user.login}
               actorRole={authUser!.role}
+              isOwnProfile={isDirectorOwnProfile}
             />
           )}
         </div>

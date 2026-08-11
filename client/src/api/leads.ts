@@ -1,4 +1,5 @@
 import type { Lead, LeadStatus, StudentListItem } from '../types';
+import { authHeaders } from './auth';
 
 async function readError(res: Response, fallback: string) {
   const body = await res.json().catch(() => ({}));
@@ -6,7 +7,7 @@ async function readError(res: Response, fallback: string) {
 }
 
 export async function fetchLeads(): Promise<Lead[]> {
-  const res = await fetch('/api/leads');
+  const res = await fetch('/api/leads', { headers: authHeaders() });
   if (!res.ok) throw new Error(await readError(res, 'Lidlarni yuklab bo\'lmadi'));
   return res.json();
 }
@@ -21,7 +22,7 @@ export async function createLead(data: {
 }): Promise<Lead | null> {
   const res = await fetch('/api/leads', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -44,7 +45,7 @@ export async function updateLead(
 ): Promise<Lead | null> {
   const res = await fetch(`/api/leads/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(data),
   });
   if (!res.ok) return null;
@@ -52,7 +53,7 @@ export async function updateLead(
 }
 
 export async function deleteLead(id: string): Promise<boolean> {
-  const res = await fetch(`/api/leads/${id}`, { method: 'DELETE' });
+  const res = await fetch(`/api/leads/${id}`, { method: 'DELETE', headers: authHeaders() });
   return res.ok;
 }
 
@@ -62,7 +63,7 @@ export async function convertLeadToStudentWithError(
 ): Promise<{ ok: true; result: { student: StudentListItem; removedLeadId: string } } | { ok: false; error: string }> {
   const res = await fetch(`/api/leads/${id}/convert`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(data),
   });
   if (!res.ok) {

@@ -54,7 +54,6 @@ export function PhoneInput({
       onFocus={handleFocus}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
-      placeholder="+998 90 123 45 67"
       {...rest}
     />
   );

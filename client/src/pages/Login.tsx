@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import logo from '../assets/oxbridge-logo.png';
+import { PasswordInput } from '../components/PasswordInput';
 import { getPostLoginPath, useAuth } from '../context/AuthContext';
 
 export function Login() {
@@ -69,7 +70,6 @@ export function Login() {
               className="edit-input"
               value={form.login}
               onChange={(e) => setForm({ ...form, login: e.target.value })}
-              placeholder="Masalan: admin"
               autoFocus
               autoComplete="username"
             />
@@ -77,12 +77,9 @@ export function Login() {
 
           <label className="login-field">
             <span>Parol</span>
-            <input
-              className="edit-input"
-              type="password"
+            <PasswordInput
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              placeholder="••••••••"
               autoComplete="current-password"
             />
           </label>

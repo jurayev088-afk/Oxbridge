@@ -1,4 +1,7 @@
 import crypto from 'crypto';
+import { validateProductionSecrets } from './security';
+
+validateProductionSecrets();
 
 const AUTH_SECRET = process.env.AUTH_SECRET ?? 'oxbridge-crm-dev-secret-change-in-production';
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;

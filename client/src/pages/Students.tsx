@@ -132,7 +132,7 @@ export function Students() {
                 <Search size={16} />
                 <input
                   type="text"
-                  placeholder="Ism, telefon yoki guruh qidirish..."
+                  aria-label="Ism, telefon yoki guruh qidirish"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />

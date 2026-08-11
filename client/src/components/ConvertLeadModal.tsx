@@ -107,7 +107,6 @@ export function ConvertLeadModal({ open, lead, onClose, onConverted }: ConvertLe
               <AmountInput
                 value={form.paymentDue}
                 onChange={(paymentDue) => setForm({ ...form, paymentDue })}
-                placeholder="850 000"
               />
             </label>
             <label className="modal-field modal-field-full">
@@ -117,7 +116,6 @@ export function ConvertLeadModal({ open, lead, onClose, onConverted }: ConvertLe
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="email@mail.uz"
               />
             </label>
           </div>
